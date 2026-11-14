@@ -15,8 +15,18 @@ with initial situation `¬g, ¬h`, goals `g, h`, and two operators: one needs `�
 `g`, the other needs `¬g` and asserts `h`. "TWEAK loops on this problem, building plans that
 are longer and longer chains of steps that alternately assert g and h." The
 correctness/completeness theorem then requires that the problem has no solution, which
-`loop_unsolvable` proves. That TWEAK's search does not terminate on it is not modeled here
-(OPEN: the search is not formalized; `tools/tweak.py` runs it).
+`loop_unsolvable` proves.
+
+**But TWEAK does not loop on the problem as printed; it fails.** No operator asserts `¬g` or
+`¬h` (`loop_no_reassert`), so the only establisher of either is the initial situation and no
+white knight can protect it: each operator's step clobbers the other's precondition, and once
+one step of each kind is present no modification helps. Nothing ever makes the final goals
+unachieved again, so no further steps are added: the search space is finite, and breadth-first
+search exhausts it after 9 plans (`tools/tweak.py`). The chains Chapman describes arise when
+the operators have *postconditions* `g, ¬h` and `h, ¬g`: each new step clobbers the other goal
+and needs a white knight, which needs another. That problem is also unsolvable
+(`loop2_unsolvable`), and its search space grows without bound (`tools/tweak.py`). OPEN: the
+search itself is not formalized, so the claims about TWEAK's behavior rest on the program.
 -/
 
 set_option linter.unusedSectionVars false
@@ -86,6 +96,40 @@ theorem loop_unsolvable : ∀ l, ¬ Solves loopOps loopInit loopGoals l := by
         · exact hc _ hg hng
   intro l ⟨hex, hgoal⟩
   exact key l hex ⟨hgoal _ (by decide), hgoal _ (by decide)⟩
+
+/-- In the printed looping problem no operator re-asserts `¬g` or `¬h`. -/
+theorem loop_no_reassert : ∀ i : Fin 2,
+    (⟨.g, false⟩ : Lit GH) ∉ (loopOps i).post ∧ (⟨.h, false⟩ : Lit GH) ∉ (loopOps i).post := by
+  decide
+
+/-- The operators of the looping problem as the described behavior requires: each asserts one
+goal and denies the other; no preconditions. -/
+def loopOps2 : Fin 2 → Step GH := fun i =>
+  if i.val = 0 then ⟨[], [⟨.g, true⟩, ⟨.h, false⟩]⟩ else ⟨[], [⟨.h, true⟩, ⟨.g, false⟩]⟩
+
+/-- **The corrected looping problem has no solution either**: the last step always denies one
+of the goals. -/
+theorem loop2_unsolvable : ∀ l, ¬ Solves loopOps2 loopInit loopGoals l := by
+  intro l ⟨_, hgoal⟩
+  have hg := hgoal ⟨.g, true⟩ (by decide)
+  have hh := hgoal ⟨.h, true⟩ (by decide)
+  revert hg hh
+  induction l using snoc_induction with
+  | nil => decide
+  | snoc l x _ =>
+    intro hg hh
+    rw [run_snoc, mem_apply] at hg hh
+    by_cases hx : x.val = 0
+    · have hx' : x = 0 := Fin.ext hx
+      subst hx'
+      rcases hh with hh | ⟨-, hd⟩
+      · exact absurd hh (by decide)
+      · exact hd (by decide)
+    · have hx' : x = 1 := Fin.ext (by omega)
+      subst hx'
+      rcases hg with hg | ⟨-, hd⟩
+      · exact absurd hg (by decide)
+      · exact hd (by decide)
 
 end Examples
 end Tweak.Ground
