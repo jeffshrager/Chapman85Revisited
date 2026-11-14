@@ -1,0 +1,5 @@
+name = "chapman85revisited"
+defaultTargets = ["Tweak"]
+
+[[lean_lib]]
+name = "Tweak"
