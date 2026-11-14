@@ -41,6 +41,9 @@ def Clobberer (s : Fin n) (p : Lit α) (c : Fin n) : Prop :=
   c ≠ s ∧ ¬ P.Lt s c ∧ (P.step c).Denies p ∧
     ¬ ∃ w, P.Lt c w ∧ P.Lt w s ∧ (P.step w).Asserts p
 
+instance (s : Fin n) (p : Lit α) (c : Fin n) : Decidable (Clobberer P s p c) := by
+  unfold Clobberer; infer_instance
+
 /-- **The modal truth criterion** for necessary truth, ground (p. 9). -/
 def MTC (s : Fin n) (p : Lit α) : Prop :=
   Establisher P s p ∧ ∀ c, ¬ Clobberer P s p c

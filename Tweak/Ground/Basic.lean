@@ -61,6 +61,10 @@ instance (x : Step α) (p : Lit α) : Decidable (x.Denies p) := by unfold Step.D
 situation" (p. 6), so no step asserts and denies the same proposition. -/
 def Step.WF (x : Step α) : Prop := ∀ p, x.Asserts p → ¬ x.Denies p
 
+/-- Well-formedness is a finite check on the postconditions. -/
+theorem Step.wf_of_check (x : Step α) (h : ∀ q ∈ x.post, q.neg ∉ x.post) : x.WF :=
+  fun q hq hd => h q hq hd
+
 /-- **Execution of a step** (postulate P3, p. 6): the input situation minus what the step
 denies, plus what it asserts. -/
 def apply (st : List (Lit α)) (x : Step α) : List (Lit α) :=
