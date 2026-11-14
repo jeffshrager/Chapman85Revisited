@@ -1,0 +1,78 @@
+\begin{thebibliography}{12}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Sacerdoti(1977)]{sacerdoti1977}
+Earl~D. Sacerdoti.
+\newblock \emph{A Structure for Plans and Behavior}.
+\newblock American Elsevier, New York, 1977.
+
+\bibitem[Sussman(1975)]{sussman1975}
+Gerald~Jay Sussman.
+\newblock \emph{A Computer Model of Skill Acquisition}.
+\newblock American Elsevier, New York, 1975.
+
+\bibitem[Chapman(1985)]{chapman1985}
+David Chapman.
+\newblock Planning for conjunctive goals.
+\newblock Technical Report AI-TR-802, MIT Artificial Intelligence Laboratory,
+  1985.
+
+\bibitem[Chapman(1987)]{chapman1987}
+David Chapman.
+\newblock Planning for conjunctive goals.
+\newblock \emph{Artificial Intelligence}, 32\penalty0 (3):\penalty0 333--377,
+  1987.
+
+\bibitem[de~Moura and Ullrich(2021)]{demoura2021}
+Leonardo de~Moura and Sebastian Ullrich.
+\newblock The {Lean 4} theorem prover and programming language.
+\newblock In \emph{Automated Deduction -- CADE 28}, volume 12699 of
+  \emph{Lecture Notes in Computer Science}, pages 625--635. Springer, 2021.
+
+\bibitem[Shrager(2026{\natexlab{a}})]{shh88revisited}
+Jeff Shrager.
+\newblock {SHH88Revisited}: {Shrager}, {Hogg} and {Huberman} (1988) in {Lean}.
+\newblock \url{https://github.com/jeffshrager/SHH88Revisited},
+  2026{\natexlab{a}}.
+
+\bibitem[Shrager(2026{\natexlab{b}})]{coglean}
+Jeff Shrager.
+\newblock {CogLean}: A library of cognitive theory in {Lean}.
+\newblock \url{https://coglean.org}, 2026{\natexlab{b}}.
+
+\bibitem[Shrager(2026{\natexlab{c}})]{cogleanintro}
+Jeff Shrager.
+\newblock {CogLean-Intro}: An invitation to {CogLean}.
+\newblock \url{https://github.com/jeffshrager/CogLean-Intro},
+  2026{\natexlab{c}}.
+
+\bibitem[Shrager(2026{\natexlab{d}})]{chapman85revisited}
+Jeff Shrager.
+\newblock {Chapman85Revisited}: {Chapman}'s {TWEAK} (1985) in {Lean}.
+\newblock \url{https://github.com/jeffshrager/Chapman85Revisited},
+  2026{\natexlab{d}}.
+
+\bibitem[Kambhampati and Nau(1996)]{kambhampati1996}
+Subbarao Kambhampati and Dana~S. Nau.
+\newblock On the nature and role of modal truth criteria in planning.
+\newblock \emph{Artificial Intelligence}, 82\penalty0 (1--2):\penalty0
+  129--155, 1996.
+
+\bibitem[McAllester and Rosenblitt(1991)]{mcallester1991}
+David McAllester and David Rosenblitt.
+\newblock Systematic nonlinear planning.
+\newblock In \emph{Proceedings of the Ninth National Conference on Artificial
+  Intelligence (AAAI-91)}, pages 634--639, 1991.
+
+\bibitem[Nebel and B{\"a}ckstr{\"o}m(1994)]{nebel1994}
+Bernhard Nebel and Christer B{\"a}ckstr{\"o}m.
+\newblock On the computational complexity of temporal projection, planning, and
+  plan validation.
+\newblock \emph{Artificial Intelligence}, 66\penalty0 (1):\penalty0 125--160,
+  1994.
+
+\end{thebibliography}
