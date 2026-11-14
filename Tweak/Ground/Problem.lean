@@ -140,14 +140,15 @@ variable {α : Type} [DecidableEq α] {σ : Type} [DecidableEq σ] [Enum σ]
 
 /-- **Correctness** (the first half of the correctness/completeness theorem, p. 13): if every
 precondition of every step of an incomplete plan is necessarily true — TWEAK's termination
-test, with the goals as preconditions of a final step `fin` — then every completion, run up
-to `fin`, is an executable complete plan that achieves the goals. "Any of
-its completions can be chosen for execution" (p. 10). -/
+test, with the goals as preconditions of a final step `fin` — then every completion is an
+executable complete plan, and the goals are true in the input situation of `fin`. "Any of its
+completions can be chosen for execution" (p. 10). -/
 theorem correctness (P : PPlan α σ) (fin : σ)
     (h : Examples.NecSolves P) (L : List σ) (hL : Completion P L) (l₁ l₂ : List σ)
     (hL12 : L = l₁ ++ fin :: l₂) :
-    Solves P.step P.init (P.step fin).pre l₁ := by
-  refine ⟨fun a i b hab q hq => ?_, fun g hg => h fin g hg L hL l₁ l₂ hL12⟩
+    Executable P.step P.init L ∧ Solves P.step P.init (P.step fin).pre l₁ := by
+  refine ⟨fun a i b hab q hq => h i q hq L hL a b hab,
+    fun a i b hab q hq => ?_, fun g hg => h fin g hg L hL l₁ l₂ hL12⟩
   exact h i q hq L hL a (b ++ fin :: l₂) (by simp [hL12, hab])
 
 end Tweak.Ground

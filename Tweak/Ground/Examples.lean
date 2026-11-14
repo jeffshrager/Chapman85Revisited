@@ -79,6 +79,15 @@ is free of possibly-intervening deniers, so the simple criterion fails. -/
 theorem wk_needed : NecTrue wkPlan 4 p ∧ ¬ Simple wkPlan 4 p :=
   ⟨(mtc_iff wkPlan abstract_wf 4 p).2 (by decide), by decide⟩
 
+/-- **No situation at all serves the simple criterion.** The paper's wording allows any
+"previous situation in which [p] is necessarily true" as the establisher (p. 8), not only one
+that asserts `p`. In `wkPlan` it makes no difference: `p` is not initially true, and for every
+step `t` before `S` some other step that denies `p` can fall between `t` and `S`, so neither
+the input nor the output situation of any step qualifies. -/
+theorem wk_needed_any : p ∉ wkPlan.init ∧ ∀ t : Fin 5, wkPlan.Lt t 4 →
+    ∃ c, c ≠ 4 ∧ c ≠ t ∧ ¬ wkPlan.Lt 4 c ∧ ¬ wkPlan.Lt c t ∧ (wkPlan.step c).Denies p := by
+  decide
+
 /-- **The switched criterion's counterexample.** `A₀ < D₃`, `B₁ < C₂`, all before `S₄`:
 each denier has an asserter possibly after it, but every completion ends with a denier. -/
 def switchPlan : PPlan Unit (Fin 5) where
@@ -125,16 +134,18 @@ theorem necSolves_of_mtc {β : Type} [DecidableEq β] {τ : Type} [DecidableEq �
 /-- `get x` (p. 7). -/
 def get (x : Obj) : Step Atom := ⟨[pos (.there x)], [pos (.here x), ng (.there x)]⟩
 
-/-- `pour milk x` (p. 7, reconstructed from the figure): needs the milk and the cereal here;
-makes breakfast and uses up the milk. -/
+/-- `pour milk x` (p. 7, as in the figure): needs `x` here, `x` a cereal, and the milk here;
+makes breakfast and uses up both. -/
 def pour (x : Obj) : Step Atom :=
-  ⟨[pos (.here .milk), pos (.here x)], [pos (.here .breakfast), ng (.here .milk)]⟩
+  ⟨[pos (.here x), pos (.cereal x), pos (.here .milk)],
+   [ng (.here x), pos (.here .breakfast), ng (.here .milk)]⟩
 
 /-- The final step: its preconditions are the goals. -/
 def finish (goals : List (Lit Atom)) : Step Atom := ⟨goals, []⟩
 
-/-- **The incomplete breakfast plan** (p. 7): `get milk` and `get cheerios` unordered, both
-before `pour milk cheerios`. -/
+/-- **The incomplete breakfast plan** (p. 7), with `x` bound to `cheerios` as in the figure's
+completion: `get milk` and `get cheerios` unordered, both before `pour milk cheerios`. The
+initial situation is the one tabulated on p. 8, less `(time morning)`, which no step uses. -/
 def breakfast : PPlan Atom (Fin 4) where
   init := [pos (.there .milk), pos (.there .cheerios), pos (.cereal .cheerios),
     ng (.here .milk), ng (.here .cheerios), ng (.here .breakfast)]

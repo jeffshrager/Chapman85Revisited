@@ -197,7 +197,9 @@ waves its hands (the regress of white knights) is easily made precise.
 With the criterion proved, correctness of TWEAK's termination test is
 immediate: a plan in which every precondition and goal is necessarily true
 is, in every completion, an executable sequence that achieves the goals
-(\lean{Tweak.Ground.correctness}). And the criterion becomes a decision
+(\lean{Tweak.Ground.correctness}). (Completeness I have only tested: on
+300 random ground domains the Python TWEAK finds a plan in the 210 that
+linear search can solve, and exhausts its search space on the other 90.) And the criterion becomes a decision
 procedure that Lean can run. Chapman's breakfast plan, which leaves
 fetching the milk and fetching the cereal unordered, necessarily solves its
 problem (\lean{Examples.breakfast\_solves}); in his Sussman-anomaly trace,
@@ -261,7 +263,11 @@ deny it, with each denier ordered before one of the asserters. Whichever of
 the four comes last before $s$ is an asserter, so $p$ is necessarily true.
 But neither asserter can serve as the simple criterion's establisher,
 because the denier not ordered before it might fall between it and $s$
-(\lean{Examples.wk\_needed}). The criterion handles the plan only through
+(\lean{Examples.wk\_needed}). Nor does it help to read the simple criterion
+generously, taking as establisher any earlier situation in which $p$ is
+necessarily true, as Chapman's wording allows: for every step before $s$
+there is a denier that can fall between that step and $s$
+(\lean{Examples.wk\_needed\_any}). The criterion handles the plan only through
 its white-knight clause, each asserter rescuing the other's denier, with a
 white knight that is not the establisher. This also qualifies Chapman's
 later remark that declobbering by a white knight distinct from the
@@ -429,9 +435,9 @@ codesignation implication in the white-knight clause, is the next tier of
 the formalization. The completeness of TWEAK is checked only empirically,
 against linear search on random small domains; a formal proof needs the
 goal-achievement procedure itself in Lean. The undecidability theorems are
-not formalized. And the source is a scanned technical report, so a few of
-the example plans (the breakfast steps in particular) are reconstructed
-from figures that do not reproduce well.
+not formalized. The statements about TWEAK's search (the nine plans, the
+unbounded growth) are about my reimplementation of the procedure in
+appendix~B of the report, not about Chapman's program.
 
 \section{Conclusion}
 
