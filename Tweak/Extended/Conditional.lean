@@ -376,7 +376,9 @@ theorem satNec_of_valid (hv : Valid cl) : SatNec cl := by
         exact xrun_keep (eff := reff cl) (by simp [rinit])
           a (fun j' hj' st => vfalse_denied_only_by_S cl i j' st (fun e => hSa (e ▸ hj')))
     have hC : reff cl (.C j) (xrun (reff cl) (rinit m) a) = [⟨.sat, true⟩] := by
-      simp only [reff]; exact ite_eq_left_of_eq_true (eq_true hcond)
+      simp only [reff]; split
+      · rfl
+      · contradiction
     rw [hab]
     exact xrun_after _ _ (by rw [hC]; simp) (fun j' _ st => sat_never_denied cl j' st)
 
