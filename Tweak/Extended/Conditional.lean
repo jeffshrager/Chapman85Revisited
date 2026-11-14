@@ -33,8 +33,9 @@ construction (`m + k + 3` steps) and is not formalized.
 
 **Reinterpretation.** Validity of DNF formulas is coNP-complete, so the reduction is a
 many-one reduction from a coNP-complete problem: necessary truth with conditional actions is
-*coNP-hard*. "NP-hard", the paper's word, holds under polynomial-time Turing reductions (and
-possible truth, its complement's dual, is NP-hard under many-one reductions).
+*coNP-hard*. "NP-hard", the paper's word, holds under polynomial-time Turing reductions; under
+many-one reductions it is the complement, whether `satisfied` is possibly false, that is
+NP-hard (not formalized).
 
 Effects that depend on the input situation are modeled directly (`eff : σ → situation →
 postconditions`); a conditional step is one such effect. SIMPLIFIED: derived side effects
@@ -65,7 +66,7 @@ theorem xrun_append (l₁ l₂ : List ι) :
 
 @[simp] theorem xrun_snoc (l : List ι) (x : ι) :
     xrun eff init (l ++ [x]) = apply (xrun eff init l) ⟨[], eff x (xrun eff init l)⟩ := by
-  simp [xrun_append, xrun]
+  simp [xrun]
 
 theorem split_snoc {l a b : List ι} {x i : ι} (h : l ++ [x] = a ++ i :: b) :
     (a = l ∧ i = x ∧ b = []) ∨ ∃ b', l = a ++ i :: b' ∧ b = b' ++ [x] := by
@@ -159,7 +160,8 @@ theorem pos_of_not_mem {x : σ} : ∀ {a : List σ} (l : List σ), x ∉ a →
   | y :: a, l, h => by
     simp only [List.cons_append, pos, List.length_cons]
     have hy : y ≠ x := fun e => h (by simp [e])
-    rw [if_neg hy, pos_of_not_mem l (fun hx => h (by simp [hx]))]
+    simp only [hy, ↓reduceIte]
+    rw [pos_of_not_mem l (fun hx => h (by simp [hx]))]
     omega
 
 /-- Membership in the prefix before `y` is having a smaller position. -/
@@ -167,7 +169,7 @@ theorem mem_prefix_iff_pos {L a b : List σ} {y : σ} (hL : L = a ++ y :: b) (hy
     (x : σ) (hx : x ∈ L) : x ∈ a ↔ pos L x < pos L y := by
   subst hL
   rw [pos_of_not_mem _ hy]
-  simp only [pos, if_true]
+  simp only [pos, ↓reduceIte]
   constructor
   · intro h; have := pos_lt_of_mem (y :: b) h; omega
   · intro h
@@ -374,7 +376,7 @@ theorem satNec_of_valid (hv : Valid cl) : SatNec cl := by
         exact xrun_keep (eff := reff cl) (by simp [rinit])
           a (fun j' hj' st => vfalse_denied_only_by_S cl i j' st (fun e => hSa (e ▸ hj')))
     have hC : reff cl (.C j) (xrun (reff cl) (rinit m) a) = [⟨.sat, true⟩] := by
-      simp only [reff]; exact if_pos hcond
+      simp only [reff]; exact ite_eq_left_of_eq_true (eq_true hcond)
     rw [hab]
     exact xrun_after _ _ (by rw [hC]; simp) (fun j' _ st => sat_never_denied cl j' st)
 
