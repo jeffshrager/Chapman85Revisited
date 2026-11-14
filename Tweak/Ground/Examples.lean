@@ -17,24 +17,26 @@ and cross-checked by brute force over all completions in `tools/mtc_check.py`.
 * `sussman_clobbered`, `sussman_solves`: TWEAK's Sussman-anomaly trace (pp. 14–17).
 -/
 
+set_option linter.unusedSectionVars false
+
 namespace Tweak.Ground
 
-variable {α : Type} [DecidableEq α] {n : Nat}
+variable {α : Type} [DecidableEq α] {σ : Type} [DecidableEq σ] [Enum σ]
 
 /-- **The simple criterion** (p. 8): an establisher, initial or a step necessarily before `s`,
 with no step possibly between it and `s` that denies `p`. -/
-def Simple (P : PPlan α n) (s : Fin n) (p : Lit α) : Prop :=
+def Simple (P : PPlan α σ) (s : σ) (p : Lit α) : Prop :=
   (p ∈ P.init ∧ ∀ c, c ≠ s → ¬ P.Lt s c → ¬ (P.step c).Denies p) ∨
   ∃ t, P.Lt t s ∧ (P.step t).Asserts p ∧
     ∀ c, c ≠ s → ¬ P.Lt s c → c ≠ t → ¬ P.Lt c t → ¬ (P.step c).Denies p
 
-instance (P : PPlan α n) (s : Fin n) (p : Lit α) : Decidable (Simple P s p) := by
+instance (P : PPlan α σ) (s : σ) (p : Lit α) : Decidable (Simple P s p) := by
   unfold Simple; infer_instance
 
 /-- **The simple criterion is sufficient** (p. 8: "a proposition p is necessarily true in a
 situation if there is some previous situation in which it is necessarily true, and no possibly
 intervening step possibly denies it"): it implies the modal truth criterion. -/
-theorem mtc_of_simple (P : PPlan α n) (hwf : ∀ i, (P.step i).WF) (s : Fin n) (p : Lit α)
+theorem mtc_of_simple (P : PPlan α σ) (hwf : ∀ i, (P.step i).WF) (s : σ) (p : Lit α)
     (h : Simple P s p) : MTC P s p := by
   rcases h with ⟨h0, hn⟩ | ⟨t, hts, ht, hn⟩
   · exact ⟨Or.inl h0, fun c ⟨hcs, hsc, hcd, _⟩ => hn c hcs hsc hcd⟩
@@ -61,7 +63,7 @@ def abstractSteps : Fin 5 → Step Unit := fun i =>
 
 /-- **Two crossed white knights.** `C₂ < A₀`, `D₃ < B₁`, all before `S₄`. Whichever of the
 four steps comes last before `S`, it asserts `p`. -/
-def wkPlan : PPlan Unit 5 where
+def wkPlan : PPlan Unit (Fin 5) where
   init := []
   step := abstractSteps
   before := mkOrder [(2, 0), (3, 1), (0, 4), (1, 4), (2, 4), (3, 4)]
@@ -79,7 +81,7 @@ theorem wk_needed : NecTrue wkPlan 4 p ∧ ¬ Simple wkPlan 4 p :=
 
 /-- **The switched criterion's counterexample.** `A₀ < D₃`, `B₁ < C₂`, all before `S₄`:
 each denier has an asserter possibly after it, but every completion ends with a denier. -/
-def switchPlan : PPlan Unit 5 where
+def switchPlan : PPlan Unit (Fin 5) where
   init := []
   step := abstractSteps
   before := mkOrder [(0, 3), (1, 2), (0, 4), (1, 4), (2, 4), (3, 4)]
@@ -113,10 +115,10 @@ def ng (a : Atom) : Lit Atom := ⟨a, false⟩
 /-- A plan **necessarily solves** its problem if every precondition of every step (including a
 final step whose preconditions are the goals) is necessarily true in its input situation
 (p. 10). -/
-def NecSolves {β : Type} [DecidableEq β] {m : Nat} (P : PPlan β m) : Prop :=
+def NecSolves {β : Type} [DecidableEq β] {τ : Type} [DecidableEq τ] [Enum τ] (P : PPlan β τ) : Prop :=
   ∀ s, ∀ q ∈ (P.step s).pre, NecTrue P s q
 
-theorem necSolves_of_mtc {β : Type} [DecidableEq β] {m : Nat} (P : PPlan β m)
+theorem necSolves_of_mtc {β : Type} [DecidableEq β] {τ : Type} [DecidableEq τ] [Enum τ] (P : PPlan β τ)
     (hwf : ∀ i, (P.step i).WF) (h : ∀ s, ∀ q ∈ (P.step s).pre, MTC P s q) : NecSolves P :=
   fun s q hq => (mtc_iff P hwf s q).2 (h s q hq)
 
@@ -133,7 +135,7 @@ def finish (goals : List (Lit Atom)) : Step Atom := ⟨goals, []⟩
 
 /-- **The incomplete breakfast plan** (p. 7): `get milk` and `get cheerios` unordered, both
 before `pour milk cheerios`. -/
-def breakfast : PPlan Atom 4 where
+def breakfast : PPlan Atom (Fin 4) where
   init := [pos (.there .milk), pos (.there .cheerios), pos (.cereal .cheerios),
     ng (.here .milk), ng (.here .cheerios), ng (.here .breakfast)]
   step := fun i => match i.val with
@@ -168,7 +170,7 @@ def sussmanGoals : List (Lit Atom) := [pos (.on .a .b), pos (.on .b .c)]
 
 /-- **TWEAK's plan after the two step additions** (p. 16): `puton a b` (0) and `puton b c` (1)
 unordered, both before the finish (2). -/
-def sussman2 : PPlan Atom 3 where
+def sussman2 : PPlan Atom (Fin 3) where
   init := sussmanInit
   step := fun i => match i.val with
     | 0 => puton .a .b .table | 1 => puton .b .c .table | _ => finish sussmanGoals
@@ -187,7 +189,7 @@ theorem sussman_clobbered :
     ((mtc_iff sussman2 sussman2_wf 1 _).1 h)⟩
 
 /-- **TWEAK's final plan** (p. 17): `newtower c`, then `puton b c`, then `puton a b`. -/
-def sussmanFinal : PPlan Atom 4 where
+def sussmanFinal : PPlan Atom (Fin 4) where
   init := sussmanInit
   step := fun i => match i.val with
     | 0 => newtower .c .a | 1 => puton .b .c .table | 2 => puton .a .b .table

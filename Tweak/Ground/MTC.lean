@@ -28,32 +28,32 @@ set_option linter.unusedSectionVars false
 
 namespace Tweak.Ground
 
-variable {α : Type} [DecidableEq α] {n : Nat} (P : PPlan α n)
+variable {α : Type} [DecidableEq α] {σ : Type} [DecidableEq σ] [Enum σ] (P : PPlan α σ)
 
 /-- **An establisher** (p. 9): the initial situation asserts `p`, or a step necessarily before
 `s` asserts it. -/
-def Establisher (s : Fin n) (p : Lit α) : Prop :=
+def Establisher (s : σ) (p : Lit α) : Prop :=
   p ∈ P.init ∨ ∃ t, P.Lt t s ∧ (P.step t).Asserts p
 
 /-- **A clobberer** of `p` at `s` (p. 9): a step possibly before `s` that denies `p` and has no
 white knight, i.e. no step necessarily between it and `s` asserting `p`. -/
-def Clobberer (s : Fin n) (p : Lit α) (c : Fin n) : Prop :=
+def Clobberer (s : σ) (p : Lit α) (c : σ) : Prop :=
   c ≠ s ∧ ¬ P.Lt s c ∧ (P.step c).Denies p ∧
     ¬ ∃ w, P.Lt c w ∧ P.Lt w s ∧ (P.step w).Asserts p
 
-instance (s : Fin n) (p : Lit α) (c : Fin n) : Decidable (Clobberer P s p c) := by
+instance (s : σ) (p : Lit α) (c : σ) : Decidable (Clobberer P s p c) := by
   unfold Clobberer; infer_instance
 
 /-- **The modal truth criterion** for necessary truth, ground (p. 9). -/
-def MTC (s : Fin n) (p : Lit α) : Prop :=
+def MTC (s : σ) (p : Lit α) : Prop :=
   Establisher P s p ∧ ∀ c, ¬ Clobberer P s p c
 
-instance (s : Fin n) (p : Lit α) : Decidable (MTC P s p) := by
+instance (s : σ) (p : Lit α) : Decidable (MTC P s p) := by
   unfold MTC Establisher Clobberer; infer_instance
 
 /-- **Sufficiency** (p. 43, "the last case"): an establisher and no clobberer make `p`
 necessarily true. Postulates P3, P4; no idealization. -/
-theorem necTrue_of_mtc {s : Fin n} {p : Lit α} (h : MTC P s p) : NecTrue P s p := by
+theorem necTrue_of_mtc {s : σ} {p : Lit α} (h : MTC P s p) : NecTrue P s p := by
   intro L hL l₁ l₂ hL12
   have hpw := hL.prefix_pairwise hL12
   apply mem_run_of_covered P.step P.init l₁
@@ -78,10 +78,10 @@ theorem necTrue_of_mtc {s : Fin n} {p : Lit α} (h : MTC P s p) : NecTrue P s p 
 
 /-- No establisher: every completion that puts all steps not necessarily before `s` after it
 falsifies `p` (p. 42). -/
-theorem not_necTrue_of_not_establisher {s : Fin n} {p : Lit α} (hE : ¬ Establisher P s p) :
+theorem not_necTrue_of_not_establisher {s : σ} {p : Lit α} (hE : ¬ Establisher P s p) :
     ¬ NecTrue P s p := by
   intro h
-  let f : Fin n → Nat := fun x => if P.Lt x s then 0 else if x = s then 1 else 2
+  let f : σ → Nat := fun x => if P.Lt x s then 0 else if x = s then 1 else 2
   have hf : ∀ a b, P.Lt a b → f a ≤ f b := by
     intro a b hab
     by_cases hb : P.Lt b s
@@ -118,12 +118,12 @@ theorem not_necTrue_of_not_establisher {s : Fin n} {p : Lit α} (hE : ¬ Establi
 /-- A clobberer: the completion that puts `c` before `s`, every step possibly after `s` after
 it, every step possibly before `c` before it, falsifies `p` (p. 42). Uses well-formedness of
 `c` (it does not also assert `p`). -/
-theorem not_necTrue_of_clobberer {s : Fin n} {p : Lit α} {c : Fin n}
+theorem not_necTrue_of_clobberer {s : σ} {p : Lit α} {c : σ}
     (hc : Clobberer P s p c) (hwf : (P.step c).WF) : ¬ NecTrue P s p := by
   obtain ⟨hcs, hsc, hcd, hnowk⟩ := hc
   intro h
   -- ranks: before c (0), c (1), necessarily between c and s (2), s (3), after (4)
-  let f : Fin n → Nat := fun x =>
+  let f : σ → Nat := fun x =>
     if x = c then 1 else if x = s then 3 else if P.Lt c x ∧ P.Lt x s then 2
     else if P.Lt x s ∨ P.Lt x c then 0 else 4
   have tr := P.trans
@@ -239,7 +239,7 @@ theorem not_necTrue_of_clobberer {s : Fin n} {p : Lit α} {c : Fin n}
 /-- **The modal truth criterion, ground** (Chapman p. 9, proof pp. 41–43): with well-formed
 steps, `p` is necessarily true in the input situation of `s` iff it has an establisher and no
 clobberer. Postulates P1, P3, P4; the ground restriction is SIMPLIFIED (no codesignation). -/
-theorem mtc_iff (hwf : ∀ i, (P.step i).WF) (s : Fin n) (p : Lit α) :
+theorem mtc_iff (hwf : ∀ i, (P.step i).WF) (s : σ) (p : Lit α) :
     NecTrue P s p ↔ MTC P s p := by
   constructor
   · intro h
@@ -250,23 +250,23 @@ theorem mtc_iff (hwf : ∀ i, (P.step i).WF) (s : Fin n) (p : Lit α) :
 
 /-- Necessary truth is decidable in polynomial time: it is the criterion (p. 9, "It runs in
 time polynomial in the number of steps"). The polynomial bound itself is not formalized. -/
-def decNecTrue (hwf : ∀ i, (P.step i).WF) (s : Fin n) (p : Lit α) : Decidable (NecTrue P s p) :=
+def decNecTrue (hwf : ∀ i, (P.step i).WF) (s : σ) (p : Lit α) : Decidable (NecTrue P s p) :=
   decidable_of_iff _ (mtc_iff P hwf s p).symm
 
 /-- **The criterion "with all the modalities switched"** (p. 9), ground: an establisher
 possibly before `s` that possibly asserts `p`, and for every step necessarily before `s` that
 denies `p`, a step possibly between it and `s` that asserts `p`. -/
-def SwitchedMTC (s : Fin n) (p : Lit α) : Prop :=
+def SwitchedMTC (s : σ) (p : Lit α) : Prop :=
   (p ∈ P.init ∨ ∃ t, t ≠ s ∧ ¬ P.Lt s t ∧ (P.step t).Asserts p) ∧
     ∀ c, P.Lt c s → (P.step c).Denies p →
       ∃ w, w ≠ c ∧ w ≠ s ∧ ¬ P.Lt w c ∧ ¬ P.Lt s w ∧ (P.step w).Asserts p
 
-instance (s : Fin n) (p : Lit α) : Decidable (SwitchedMTC P s p) := by
+instance (s : σ) (p : Lit α) : Decidable (SwitchedMTC P s p) := by
   unfold SwitchedMTC; infer_instance
 
 /-- **The switched criterion is necessary for possible truth.** Postulates P3, P4.
 Its converse fails (`Examples.switched_not_sufficient`). -/
-theorem switched_of_possTrue (hwf : ∀ i, (P.step i).WF) {s : Fin n} {p : Lit α}
+theorem switched_of_possTrue (hwf : ∀ i, (P.step i).WF) {s : σ} {p : Lit α}
     (h : PossTrue P s p) : SwitchedMTC P s p := by
   obtain ⟨L, l₁, l₂, hL, hL12, hp⟩ := h
   have hpw := hL.prefix_pairwise hL12

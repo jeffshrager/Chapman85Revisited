@@ -28,33 +28,50 @@ namespace Tweak.Ground
 
 variable {α : Type} [DecidableEq α]
 
-/-- **An incomplete ground plan** with `n` steps (postulate P4, p. 5): an initial situation, a
+/-- **A finite type of step names**, listed without repetition. -/
+class Enum (σ : Type) where
+  elems : List σ
+  nodup : elems.Nodup
+  complete : ∀ x, x ∈ elems
+
+instance (n : Nat) : Enum (Fin n) := ⟨List.finRange n, List.nodup_finRange n, List.mem_finRange⟩
+
+instance Enum.decForall {σ : Type} [Enum σ] (P : σ → Prop) [DecidablePred P] :
+    Decidable (∀ x, P x) :=
+  decidable_of_iff (∀ x ∈ Enum.elems, P x) ⟨fun h x => h x (Enum.complete x), fun h x _ => h x⟩
+
+instance Enum.decExists {σ : Type} [Enum σ] (P : σ → Prop) [DecidablePred P] :
+    Decidable (∃ x, P x) :=
+  decidable_of_iff (∃ x ∈ Enum.elems, P x)
+    ⟨fun ⟨x, _, h⟩ => ⟨x, h⟩, fun ⟨x, h⟩ => ⟨x, Enum.complete x, h⟩⟩
+
+/-- **An incomplete ground plan** with steps named by `σ` (postulate P4, p. 5): an initial situation, a
 table of steps, and a strict partial order on them. -/
-structure PPlan (α : Type) (n : Nat) where
+structure PPlan (α : Type) (σ : Type) where
   init : List (Lit α)
-  step : Fin n → Step α
-  before : Fin n → Fin n → Bool
+  step : σ → Step α
+  before : σ → σ → Bool
   irrefl : ∀ a, before a a = false
   trans : ∀ a b c, before a b = true → before b c = true → before a c = true
 
-variable {n : Nat} (P : PPlan α n)
+variable {σ : Type} [DecidableEq σ] [Enum σ] (P : PPlan α σ)
 
 /-- `a` is necessarily before `b` in the time order. -/
-abbrev PPlan.Lt (a b : Fin n) : Prop := P.before a b = true
+abbrev PPlan.Lt (a b : σ) : Prop := P.before a b = true
 
 /-- **A completion** (p. 5): a total order on all the steps extending the partial order, as a
 list. -/
-structure Completion (L : List (Fin n)) : Prop where
+structure Completion (L : List (σ)) : Prop where
   nodup : L.Nodup
   complete : ∀ a, a ∈ L
   respects : L.Pairwise (fun x y => ¬ P.Lt y x)
 
 /-- **Necessary truth** (p. 5): `p` holds in the input situation of `s` in every completion. -/
-def NecTrue (s : Fin n) (p : Lit α) : Prop :=
+def NecTrue (s : σ) (p : Lit α) : Prop :=
   ∀ L, Completion P L → ∀ l₁ l₂, L = l₁ ++ s :: l₂ → p ∈ run P.step P.init l₁
 
 /-- **Possible truth** (p. 5): `p` holds in the input situation of `s` in some completion. -/
-def PossTrue (s : Fin n) (p : Lit α) : Prop :=
+def PossTrue (s : σ) (p : Lit α) : Prop :=
   ∃ L l₁ l₂, Completion P L ∧ L = l₁ ++ s :: l₂ ∧ p ∈ run P.step P.init l₁
 
 section Sorting
@@ -108,9 +125,9 @@ end Sorting
 order, some completion lists the steps in order of rank. Each construction in Chapman's proof
 of the modal truth criterion ("put after s every step possibly after s", p. 42) is a choice of
 ranking. -/
-theorem exists_completion_rank (f : Fin n → Nat) (hf : ∀ a b, P.Lt a b → f a ≤ f b) :
+theorem exists_completion_rank (f : σ → Nat) (hf : ∀ a b, P.Lt a b → f a ≤ f b) :
     ∃ L, Completion P L ∧ L.Pairwise (fun x y => f x ≤ f y) := by
-  let R : Fin n → Fin n → Prop := fun x y => f x < f y ∨ (f x = f y ∧ P.Lt x y)
+  let R : σ → σ → Prop := fun x y => f x < f y ∨ (f x = f y ∧ P.Lt x y)
   have irr : ∀ a, ¬ R a a := by
     intro a h
     rcases h with h | ⟨-, h⟩
@@ -123,8 +140,8 @@ theorem exists_completion_rank (f : Fin n → Nat) (hf : ∀ a b, P.Lt a b → f
     · exact Or.inl (by omega)
     · exact Or.inl (by omega)
     · exact Or.inr ⟨by omega, P.trans _ _ _ h1 h2⟩
-  obtain ⟨L, hp, hs⟩ := exists_sorted R irr tr _ (List.finRange n) rfl
-  refine ⟨L, ⟨hp.nodup_iff.2 (List.nodup_finRange n), fun a => hp.mem_iff.2 (List.mem_finRange a),
+  obtain ⟨L, hp, hs⟩ := exists_sorted R irr tr _ (Enum.elems) rfl
+  refine ⟨L, ⟨hp.nodup_iff.2 Enum.nodup, fun a => hp.mem_iff.2 (Enum.complete a),
     hs.imp ?_⟩, hs.imp ?_⟩
   · intro x y hxy hlt
     apply hxy
@@ -145,26 +162,26 @@ theorem exists_completion : ∃ L, Completion P L := by
 variable {P}
 
 /-- Every step appears in a completion, so a completion splits around it. -/
-theorem Completion.split {L : List (Fin n)} (h : Completion P L) (s : Fin n) :
+theorem Completion.split {L : List (σ)} (h : Completion P L) (s : σ) :
     ∃ l₁ l₂, L = l₁ ++ s :: l₂ := List.append_of_mem (h.complete s)
 
-theorem Completion.not_mem_prefix {L l₁ l₂ : List (Fin n)} {s : Fin n} (h : Completion P L)
+theorem Completion.not_mem_prefix {L l₁ l₂ : List (σ)} {s : σ} (h : Completion P L)
     (hL : L = l₁ ++ s :: l₂) : s ∉ l₁ := by
   intro hs
   have := (List.nodup_append.1 (hL ▸ h.nodup)).2.2 s hs s (by simp)
   exact this rfl
 
-theorem Completion.prefix_pairwise {L l₁ l₂ : List (Fin n)} {s : Fin n} (h : Completion P L)
+theorem Completion.prefix_pairwise {L l₁ l₂ : List (σ)} {s : σ} (h : Completion P L)
     (hL : L = l₁ ++ s :: l₂) : l₁.Pairwise (fun x y => ¬ P.Lt y x) :=
   (List.pairwise_append.1 (hL ▸ h.respects)).1
 
 /-- A step in the prefix before `s` is not necessarily after `s`. -/
-theorem Completion.not_lt_of_mem_prefix {L l₁ l₂ : List (Fin n)} {s x : Fin n}
+theorem Completion.not_lt_of_mem_prefix {L l₁ l₂ : List (σ)} {s x : σ}
     (h : Completion P L) (hL : L = l₁ ++ s :: l₂) (hx : x ∈ l₁) : ¬ P.Lt s x :=
   (List.pairwise_append.1 (hL ▸ h.respects)).2.2 x hx s (by simp)
 
 /-- A step necessarily before `s` lies in the prefix before `s`. -/
-theorem Completion.mem_prefix_of_lt {L l₁ l₂ : List (Fin n)} {s x : Fin n}
+theorem Completion.mem_prefix_of_lt {L l₁ l₂ : List (σ)} {s x : σ}
     (h : Completion P L) (hL : L = l₁ ++ s :: l₂) (hx : P.Lt x s) : x ∈ l₁ := by
   have hxL := h.complete x
   rw [hL] at hxL
@@ -177,9 +194,9 @@ theorem Completion.mem_prefix_of_lt {L l₁ l₂ : List (Fin n)} {s x : Fin n}
 
 /-- In a completion sorted by a ranking in which `s` alone has its rank, the prefix before `s`
 is exactly the steps of lower rank. -/
-theorem Completion.mem_prefix_iff_rank {L l₁ l₂ : List (Fin n)} {s : Fin n} {f : Fin n → Nat}
+theorem Completion.mem_prefix_iff_rank {L l₁ l₂ : List (σ)} {s : σ} {f : σ → Nat}
     (h : Completion P L) (hf : L.Pairwise (fun x y => f x ≤ f y)) (hL : L = l₁ ++ s :: l₂)
-    (huniq : ∀ x, f x = f s → x = s) (x : Fin n) : x ∈ l₁ ↔ f x < f s := by
+    (huniq : ∀ x, f x = f s → x = s) (x : σ) : x ∈ l₁ ↔ f x < f s := by
   have hp := List.pairwise_append.1 (hL ▸ hf)
   constructor
   · intro hx
@@ -200,13 +217,13 @@ theorem Completion.mem_prefix_iff_rank {L l₁ l₂ : List (Fin n)} {s : Fin n} 
 /-- **"Necessarily before" is the time order** (p. 5): `a` precedes `b` in every completion
 iff `a` is before `b` in the partial order. So Chapman's modalities on the time order are
 decidable without enumerating completions. -/
-theorem necBefore_iff (P : PPlan α n) (a b : Fin n) (hab : a ≠ b) :
+theorem necBefore_iff (P : PPlan α σ) (a b : σ) (hab : a ≠ b) :
     (∀ L, Completion P L → ∀ l₁ l₂, L = l₁ ++ b :: l₂ → a ∈ l₁) ↔ P.Lt a b := by
   constructor
   · intro h
     refine Classical.byContradiction fun hlt => ?_
     -- rank: everything at or below `b` first, the rest after
-    let f : Fin n → Nat := fun x => if P.Lt x b ∨ x = b then 0 else 1
+    let f : σ → Nat := fun x => if P.Lt x b ∨ x = b then 0 else 1
     have hf : ∀ x y, P.Lt x y → f x ≤ f y := by
       intro x y hxy
       by_cases hy : P.Lt y b ∨ y = b
@@ -216,7 +233,7 @@ theorem necBefore_iff (P : PPlan α n) (a b : Fin n) (hab : a ≠ b) :
           · exact hxy
         have h1 : f x = 0 := by simp [f, this]
         omega
-      · have h1 : f y = 1 := by simp only [f]; exact if_neg hy
+      · have h1 : f y = 1 := by simp only [f]; exact (ite_eq_right_iff.2 (fun h => absurd h hy))
         have h2 : f x ≤ 1 := by simp only [f]; split <;> omega
         omega
     obtain ⟨L, hL, hs⟩ := exists_completion_rank P f hf
